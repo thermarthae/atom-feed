@@ -90,6 +90,17 @@ interface IAttribLink {
     link: Array<{ _attributes: ILink }>;
 }
 
+const removeEmptyProperties = <T = IAtomFeed | IAtomEntry>(obj: T) => {
+    const newObj: any = {};
+    Object.keys(obj).forEach((key) => {
+        const value = (obj as any)[key];
+        if (value !== null && value !== undefined) {
+            newObj[key] = value;
+        }
+    });
+    return newObj as T;
+};
+
 type IFeed = Omit<IAtomFeed, 'link'> & IAttribLink;
 type IEntry = Omit<IAtomEntry, 'link'> & IAttribLink;
 
@@ -98,7 +109,7 @@ export default class Feed {
 
     private entries: IEntry[] = [];
 
-    constructor(opts: IFeedData) {
+    constructor(feedData: IFeedData) {
         const {
             author,
             category,
@@ -115,9 +126,9 @@ export default class Feed {
             subtitle,
             title,
             updated = new Date(),
-        } = opts;
+        } = feedData;
 
-        this.feed = {
+        const feed: IFeed = {
             author,
             category,
             contributor,
@@ -131,9 +142,11 @@ export default class Feed {
             title,
             updated: updated.toISOString(),
         };
+
+        this.feed = removeEmptyProperties(feed);
     }
 
-    public addEntry = (entry: IEntryData) => {
+    public addEntry = (entryData: IEntryData) => {
         const {
             author,
             category,
@@ -147,9 +160,9 @@ export default class Feed {
             summary,
             title,
             updated = new Date(),
-        } = entry;
+        } = entryData;
 
-        const newEntry: IEntry = {
+        const entry: IEntry = removeEmptyProperties({
             author,
             category,
             content,
@@ -162,9 +175,9 @@ export default class Feed {
             summary,
             title,
             updated: updated.toISOString(),
-        };
+        });
 
-        return this.entries.push(newEntry);
+        return this.entries.push(entry);
     };
 
     public getFeed = (indent?: string | number): string => js2xml(
