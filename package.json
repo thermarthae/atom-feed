@@ -1,0 +1,24 @@
+{
+    "name": "atom-feed",
+    "version": "0.0.1",
+    "description": "Atom feed generator for Node.js",
+    "homepage": "https://github.com/thermarthae/atom-feed",
+    "license": "MIT",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "rimraf dist && tsc"
+    },
+    "dependencies": {
+        "xml-js": "^1.6.11"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^2.0.0",
+        "@typescript-eslint/parser": "^2.0.0",
+        "eslint": "^6.2.2",
+        "eslint-config-airbnb-base": "^14.0.0",
+        "eslint-plugin-import": "^2.18.2",
+        "rimraf": "^3.0.0",
+        "typescript": "^3.5.3"
+    }
+}

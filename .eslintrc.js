@@ -1,0 +1,35 @@
+module.exports = {
+    extends: [
+        'airbnb-base',
+        'plugin:@typescript-eslint/recommended',
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    ],
+    parser: '@typescript-eslint/parser',
+    plugins: ['@typescript-eslint'],
+    env: {
+        node: true,
+    },
+    parserOptions: {
+        project: './tsconfig.json',
+        ecmaVersion: 2015,
+        warnOnUnsupportedTypeScriptVersion: false,
+    },
+    rules: {
+        'linebreak-style': ['error', 'windows'],
+        'max-len': ['error', { code: 120 }],
+        'no-multiple-empty-lines': ['error', { max: 3, maxEOF: 1, maxBOF: 0 }],
+        'arrow-parens': 0,
+        'indent': 0,
+        '@typescript-eslint/indent': ['error', 4],
+        '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+        '@typescript-eslint/await-thenable': 0,
+        '@typescript-eslint/no-misused-promises': 0,
+        '@typescript-eslint/no-explicit-any': 0,
+        '@typescript-eslint/no-object-literal-type-assertion': 0,
+        '@typescript-eslint/no-non-null-assertion': 0,
+        '@typescript-eslint/explicit-function-return-type': 0,
+        '@typescript-eslint/interface-name-prefix': ['error', 'always'],
+        '@typescript-eslint/prefer-interface': 0,
+        '@typescript-eslint/unbound-method': 0,
+    },
+};
