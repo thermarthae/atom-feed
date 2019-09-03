@@ -1,13 +1,16 @@
 import { js2xml } from 'xml-js';
 
 type TContentType = 'html' | 'xhtml' | 'text';
-type TContent = ITextConstruct | { type?: string; src: string; value: never };
 
 interface ITextConstruct {
     type?: TContentType;
     value: string;
 }
 
+type TContent = ITextConstruct & {
+    type?: string;
+    src?: string;
+};
 interface IPerson {
     name: string;
     uri?: string;
@@ -35,7 +38,7 @@ interface ILink {
     length?: string;
 }
 
-interface ISource {
+interface IAtomSource {
     author: IPerson[];
     category?: ICategory[];
     contributor?: IPerson[];
@@ -76,7 +79,7 @@ interface IAtomEntry {
     link?: ILink[];
     published?: string; // ISO
     rights?: ITextConstruct;
-    atomSource?: ISource;
+    source?: IAtomSource;
     summary?: ITextConstruct;
     title: ITextConstruct;
     updated: string; // ISO
@@ -85,13 +88,18 @@ interface IAtomEntry {
 
 //
 
-interface IFeedData extends Omit<IAtomFeed, 'updated'> {
+interface ISourceData extends Omit<IAtomSource, 'updated'> {
     updated?: Date;
 }
 
-interface IEntryData extends Omit<IAtomEntry, 'published' | 'updated'> {
+interface IFeedInput extends Omit<IAtomFeed, 'updated'> {
+    updated?: Date;
+}
+
+interface IEntryInput extends Omit<IAtomEntry, 'published' | 'updated' | 'source'> {
     published?: Date;
     updated?: Date;
+    source?: ISourceData;
 }
 
 type TContentTypeField = {
@@ -99,7 +107,7 @@ type TContentTypeField = {
     _text: string;
 }
 
-type IFeed = Readonly<{
+type IFeed = {
     author: IPerson[];
     category?: ICategory[];
     contributor?: IPerson[];
@@ -110,12 +118,13 @@ type IFeed = Readonly<{
     icon?: string;
     logo?: string;
     id: string;
-    link: Array<{ _attributes: ILink }>;
+    link?: Array<{ _attributes: ILink }>;
     rights?: TContentTypeField;
     subtitle?: TContentTypeField;
     title?: TContentTypeField;
     updated: string;
-}>;
+};
+type ISource = IFeed;
 type IEntry = {
     author: IPerson[];
     category?: ICategory[];
@@ -128,10 +137,10 @@ type IEntry = {
     };
     contributor?: IPerson[];
     id: string;
-    link: Array<{ _attributes: ILink }>;
+    link?: Array<{ _attributes: ILink }>;
     published?: string;
     rights?: TContentTypeField;
-    atomSource?: ISource;
+    source?: ISource;
     summary?: TContentTypeField;
     title: TContentTypeField;
     updated: string;
@@ -157,84 +166,127 @@ export default class Feed {
 
     private entries: IEntry[] = [];
 
-    constructor(feedData: IFeedData) {
-        const {
-            author,
-            category,
-            contributor,
-            generator: { value: generatorText, ...generatorAttribs } = {
-                value: 'AtomFeed',
-                uri: 'https://github.com/thermarthae/atom-feed',
-            },
-            icon,
-            logo,
-            id,
-            link = [],
-            rights: { value: rightsText, ...rightsAttribs } = {} as Partial<ITextConstruct>,
-            subtitle: { value: subtitleText, ...subtitleAttribs } = {} as Partial<ITextConstruct>,
-            title: { value: titleText, ...titleAttribs } = {} as Partial<ITextConstruct>,
-            updated = new Date(),
-        } = feedData;
-
+    private parseFeed = (data: IFeedInput) => {
         const feed: IFeed = {
-            author,
-            category,
-            contributor,
-            generator: {
-                _attributes: generatorAttribs,
-                _text: generatorText,
-            },
-            icon,
-            logo,
-            id,
-            link: link.map(_attributes => ({ _attributes })),
-            rights: ifTextExist(rightsText, rightsAttribs),
-            subtitle: ifTextExist(subtitleText, subtitleAttribs),
-            title: ifTextExist(titleText, titleAttribs),
-            updated: updated.toISOString(),
+            author: data.author.map(a => removeEmptyProperties({
+                name: a.name,
+                email: a.email,
+                uri: a.uri,
+            })),
+            category: !data.category ? undefined : data.category.map(c => removeEmptyProperties({
+                term: c.term,
+                scheme: c.scheme,
+                label: c.label,
+            })),
+            contributor: !data.contributor ? undefined : data.contributor.map(c => removeEmptyProperties({
+                name: c.name,
+                email: c.email,
+                uri: c.uri,
+            })),
+            generator: data.generator
+                ? {
+                    _attributes: {
+                        uri: data.generator.uri,
+                        version: data.generator.version,
+                    },
+                    _text: data.generator.value,
+                }
+                : {
+                    _attributes: {
+                        uri: 'https://github.com/thermarthae/atom-feed',
+                    },
+                    _text: 'AtomFeed',
+                },
+            icon: data.icon,
+            logo: data.logo,
+            id: data.id,
+            link: !data.link ? undefined : data.link.map(l => ({
+                _attributes: {
+                    href: l.href,
+                    rel: l.rel,
+                    type: l.type,
+                    hreflang: l.hreflang,
+                    title: l.title,
+                    length: l.length,
+                },
+            })),
+            rights: !data.rights ? undefined : ifTextExist(data.rights.value, {
+                type: data.rights.type,
+            }),
+            subtitle: !data.subtitle ? undefined : ifTextExist(data.subtitle.value, {
+                type: data.subtitle.type,
+            }),
+            title: !data.title ? undefined : ifTextExist(data.title.value, {
+                type: data.title.type,
+            }),
+            updated: (data.updated instanceof Date ? data.updated : new Date()).toISOString(),
         };
 
-        this.feed = removeEmptyProperties(feed);
+        return removeEmptyProperties(feed);
     }
 
-    public addEntry = (entryData: IEntryData) => {
-        const {
-            author,
-            category,
-            content: { value: contentText, ...contentAttribs } = {} as Partial<TContent>,
-            contributor,
-            id,
-            link = [],
-            published,
-            rights: { value: rightsText, ...rightsAttribs } = {} as Partial<ITextConstruct>,
-            atomSource,
-            summary: { value: summaryText, ...summaryAttribs } = {} as Partial<ITextConstruct>,
-            title: { value: titleText, ...titleAttribs },
-            updated = new Date(),
-        } = entryData;
-
+    private parseEntry = (data: IEntryInput) => {
         const entry: IEntry = removeEmptyProperties({
-            author,
-            category,
+            author: data.author.map(a => removeEmptyProperties({
+                name: a.name,
+                email: a.email,
+                uri: a.uri,
+            })),
+            category: !data.category ? undefined : data.category.map(c => removeEmptyProperties({
+                term: c.term,
+                scheme: c.scheme,
+                label: c.label,
+            })),
             content: {
-                _attributes: contentAttribs,
-                _text: contentText,
+                _attributes: {
+                    type: data.content.type,
+                    src: data.content.src,
+                },
+                _text: data.content.value,
             },
-            contributor,
-            id,
-            link: link.map(_attributes => ({ _attributes })),
-            published: published ? published.toISOString() : undefined,
-            rights: ifTextExist(rightsText, rightsAttribs),
-            atomSource,
-            summary: ifTextExist(summaryText, summaryAttribs),
+            contributor: !data.contributor ? undefined : data.contributor.map(c => removeEmptyProperties({
+                name: c.name,
+                email: c.email,
+                uri: c.uri,
+            })),
+            id: data.id,
+            link: !data.link ? undefined : data.link.map(l => ({
+                _attributes: {
+                    href: l.href,
+                    rel: l.rel,
+                    type: l.type,
+                    hreflang: l.hreflang,
+                    title: l.title,
+                    length: l.length,
+                },
+            })),
+            published: data.published instanceof Date ? data.published.toISOString() : undefined,
+            rights: !data.rights ? undefined : ifTextExist(data.rights.value, {
+                type: data.rights.type,
+            }),
+            source: !data.source ? undefined : this.parseFeed(data.source),
+            summary: !data.summary ? undefined : ifTextExist(data.summary.value, {
+                type: data.summary.type,
+            }),
             title: {
-                _attributes: titleAttribs,
-                _text: titleText,
+                _attributes: {
+                    type: data.title.type,
+                },
+                _text: data.title.value,
             },
-            updated: updated.toISOString(),
+            updated: (data.updated instanceof Date ? data.updated : new Date()).toISOString(),
         });
 
-        return this.entries.push(entry);
+        return entry;
+    }
+
+    constructor(data: IFeedInput) {
+        this.feed = this.parseFeed(data);
+    }
+
+    public addEntry = (data: IEntryInput) => {
+        const entry = this.parseEntry(data);
+        this.entries.push(entry);
     };
 
     public getFeed = (indent?: string | number): string => js2xml(
