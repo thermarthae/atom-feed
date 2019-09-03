@@ -161,6 +161,8 @@ const ifTextExist = <A>(_text: string | undefined, _attributes: A) => (
     !_text ? undefined : { _attributes, _text }
 );
 
+const ifExist = <T>(data: T | false) => data || undefined;
+
 export default class Feed {
     private readonly feed: IFeed;
 
@@ -173,16 +175,16 @@ export default class Feed {
                 email: a.email,
                 uri: a.uri,
             })),
-            category: !data.category ? undefined : data.category.map(c => removeEmptyProperties({
+            category: ifExist(data.category && data.category.map(c => removeEmptyProperties({
                 term: c.term,
                 scheme: c.scheme,
                 label: c.label,
-            })),
-            contributor: !data.contributor ? undefined : data.contributor.map(c => removeEmptyProperties({
+            }))),
+            contributor: ifExist(data.contributor && data.contributor.map(c => removeEmptyProperties({
                 name: c.name,
                 email: c.email,
                 uri: c.uri,
-            })),
+            }))),
             generator: data.generator
                 ? {
                     _attributes: {
@@ -200,7 +202,7 @@ export default class Feed {
             icon: data.icon,
             logo: data.logo,
             id: data.id,
-            link: !data.link ? undefined : data.link.map(l => ({
+            link: ifExist(data.link && data.link.map(l => ({
                 _attributes: {
                     href: l.href,
                     rel: l.rel,
@@ -209,16 +211,16 @@ export default class Feed {
                     title: l.title,
                     length: l.length,
                 },
-            })),
-            rights: !data.rights ? undefined : ifTextExist(data.rights.value, {
+            }))),
+            rights: ifExist(data.rights && ifTextExist(data.rights.value, {
                 type: data.rights.type,
-            }),
-            subtitle: !data.subtitle ? undefined : ifTextExist(data.subtitle.value, {
+            })),
+            subtitle: ifExist(data.subtitle && ifTextExist(data.subtitle.value, {
                 type: data.subtitle.type,
-            }),
-            title: !data.title ? undefined : ifTextExist(data.title.value, {
+            })),
+            title: ifExist(data.title && ifTextExist(data.title.value, {
                 type: data.title.type,
-            }),
+            })),
             updated: (data.updated instanceof Date ? data.updated : new Date()).toISOString(),
         };
 
@@ -232,11 +234,11 @@ export default class Feed {
                 email: a.email,
                 uri: a.uri,
             })),
-            category: !data.category ? undefined : data.category.map(c => removeEmptyProperties({
+            category: ifExist(data.category && data.category.map(c => removeEmptyProperties({
                 term: c.term,
                 scheme: c.scheme,
                 label: c.label,
-            })),
+            }))),
             content: {
                 _attributes: {
                     type: data.content.type,
@@ -244,13 +246,13 @@ export default class Feed {
                 },
                 _text: data.content.value,
             },
-            contributor: !data.contributor ? undefined : data.contributor.map(c => removeEmptyProperties({
+            contributor: ifExist(data.contributor && data.contributor.map(c => removeEmptyProperties({
                 name: c.name,
                 email: c.email,
                 uri: c.uri,
-            })),
+            }))),
             id: data.id,
-            link: !data.link ? undefined : data.link.map(l => ({
+            link: ifExist(data.link && data.link.map(l => ({
                 _attributes: {
                     href: l.href,
                     rel: l.rel,
@@ -259,15 +261,15 @@ export default class Feed {
                     title: l.title,
                     length: l.length,
                 },
-            })),
+            }))),
             published: data.published instanceof Date ? data.published.toISOString() : undefined,
-            rights: !data.rights ? undefined : ifTextExist(data.rights.value, {
+            rights: ifExist(data.rights && ifTextExist(data.rights.value, {
                 type: data.rights.type,
-            }),
-            source: !data.source ? undefined : this.parseFeed(data.source),
-            summary: !data.summary ? undefined : ifTextExist(data.summary.value, {
+            })),
+            source: ifExist(data.source && this.parseFeed(data.source)),
+            summary: ifExist(data.summary && ifTextExist(data.summary.value, {
                 type: data.summary.type,
-            }),
+            })),
             title: {
                 _attributes: {
                     type: data.title.type,
