@@ -157,9 +157,7 @@ const removeEmptyProperties = <T = IAtomFeed | IAtomEntry>(obj: T) => {
     return newObj as T;
 };
 
-const ifTextExist = <A>(_text: string | undefined, _attributes: A) => (
-    !_text ? undefined : { _attributes, _text }
-);
+const makeAttributedText = <A>(_text: string, _attributes: A) => ({ _text, _attributes });
 
 const ifExist = <T>(data: T | false) => data || undefined;
 
@@ -212,13 +210,13 @@ export default class Feed {
                     length: l.length,
                 },
             }))),
-            rights: ifExist(data.rights && ifTextExist(data.rights.value, {
+            rights: ifExist(data.rights && makeAttributedText(data.rights.value, {
                 type: data.rights.type,
             })),
-            subtitle: ifExist(data.subtitle && ifTextExist(data.subtitle.value, {
+            subtitle: ifExist(data.subtitle && makeAttributedText(data.subtitle.value, {
                 type: data.subtitle.type,
             })),
-            title: ifExist(data.title && ifTextExist(data.title.value, {
+            title: ifExist(data.title && makeAttributedText(data.title.value, {
                 type: data.title.type,
             })),
             updated: (data.updated instanceof Date ? data.updated : new Date()).toISOString(),
@@ -263,11 +261,11 @@ export default class Feed {
                 },
             }))),
             published: data.published instanceof Date ? data.published.toISOString() : undefined,
-            rights: ifExist(data.rights && ifTextExist(data.rights.value, {
+            rights: ifExist(data.rights && makeAttributedText(data.rights.value, {
                 type: data.rights.type,
             })),
             source: ifExist(data.source && this.parseFeed(data.source)),
-            summary: ifExist(data.summary && ifTextExist(data.summary.value, {
+            summary: ifExist(data.summary && makeAttributedText(data.summary.value, {
                 type: data.summary.type,
             })),
             title: {
